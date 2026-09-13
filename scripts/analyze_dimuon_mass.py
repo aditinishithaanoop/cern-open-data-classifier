@@ -22,10 +22,11 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.data_loader import load_dimuon_csv
+from src.data_loader import load_dimuon_csv, is_nanoaod_muon_format, build_dimuon_pairs_from_nanoaod
 from src.physics import invariant_mass
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "dimuon.csv")
@@ -38,13 +39,32 @@ def main():
         print("See docs/DATA.md for where to download the real CMS dimuon dataset.")
         print("Generating a small synthetic placeholder instead, just to prove the pipeline runs end-to-end.")
         df = _make_synthetic_placeholder()
+        mass = invariant_mass(
+            df["pt1"], df["eta1"], df["phi1"],
+            df["pt2"], df["eta2"], df["phi2"],
+        )
     else:
-        df = load_dimuon_csv(DATA_PATH)
+        raw = pd.read_csv(DATA_PATH) if DATA_PATH.endswith(".csv") else None
+        if raw is None:
+            raise ValueError(f"Don't know how to load {DATA_PATH}")
 
-    mass = invariant_mass(
-        df["pt1"], df["eta1"], df["phi1"],
-        df["pt2"], df["eta2"], df["phi2"],
-    )
+        if is_nanoaod_muon_format(raw):
+            # Real per-muon NanoAOD-style export: reconstruct event-level pairs first.
+            df = build_dimuon_pairs_from_nanoaod(raw, require_opposite_charge=True)
+            # Use each muon's own reconstructed mass rather than a fixed constant --
+            # more correct, and the column is right there.
+            mass = invariant_mass(
+                df["pt1"], df["eta1"], df["phi1"],
+                df["pt2"], df["eta2"], df["phi2"],
+                mass1=df["mass1"], mass2=df["mass2"],
+            )
+        else:
+            # Pre-paired education CSV format (pt1/eta1/phi1/pt2/eta2/phi2 already split out).
+            df = load_dimuon_csv(DATA_PATH)
+            mass = invariant_mass(
+                df["pt1"], df["eta1"], df["phi1"],
+                df["pt2"], df["eta2"], df["phi2"],
+            )
 
     print(f"Computed invariant mass for {len(mass)} events.")
     print(f"Mass range: {mass.min():.2f} - {mass.max():.2f} GeV")
