@@ -11,10 +11,24 @@ CMS Open Data education dataset, "CMS Open Data 2012 datasets for dimuon
 exercises":
 - https://zenodo.org/records/6538437
 - Download either the CSV or PKL version (same content, use one).
-- Expected columns (case-insensitive): `pt1, eta1, phi1, pt2, eta2, phi2`
-  (there may be additional columns like charge, run/event number -- ignore
-  those for this project).
-- Place the file at `data/raw/dimuon.csv`.
+
+**Important -- there are two different shapes this data can come in:**
+
+1. **Per-muon (NanoAOD-style) format** -- what you'll most likely get.
+   One row per muon, not per event. Key columns: `entry` (event ID,
+   shared by muons from the same event), `Muon_pt`, `Muon_eta`,
+   `Muon_phi`, `Muon_mass`, `Muon_charge`, `nMuon`. `src/data_loader.py`'s
+   `build_dimuon_pairs_from_nanoaod()` reconstructs event-level pairs from
+   this automatically (taking the two leading muons per event, requiring
+   opposite charge by default), and `scripts/analyze_dimuon_mass.py`
+   detects and handles this format on its own.
+
+2. **Pre-paired (education) format** -- an older/simplified layout with
+   columns already split as `pt1, eta1, phi1, pt2, eta2, phi2` per row,
+   one row per event. Also handled automatically if you have this instead.
+
+Place whichever version you have at `data/raw/dimuon.csv` -- the analysis
+script figures out which format it is.
 
 Also worth browsing directly on the portal itself:
 - https://opendata.cern.ch/ -- search `keywords:education`
@@ -35,6 +49,18 @@ do with any new file is `df.columns` and `df.describe()` -- don't assume the
 column names in this repo match exactly what you downloaded. Update
 `src/data_loader.py`'s column list if they differ, and say so in your
 project README rather than silently renaming things.
+
+## Record what you actually got (fill this in once you've downloaded)
+
+Generic instructions above; this section is for the specifics of the real
+file you ended up with -- future you (or an interviewer) will want this,
+and it's also the fastest way to spot a wrong download.
+
+- **Source URL:**
+- **Date downloaded:**
+- **File size / row count:**
+- **Actual column names (paste `df.columns.tolist()` output):**
+- **Any differences from what this doc assumed:**
 
 ## A note on scale
 
